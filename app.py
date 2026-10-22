@@ -1154,66 +1154,66 @@ elif menu == "ℹ️ Metadata":
 # DATA
 # ============================================================
 else:
+    
+ #   st.markdown("""
+ #   <div class="hero">
+ #       <div class="hero-kicker">DATA SOURCE</div>
+ #       <div class="hero-title">📁 Data Dashboard</div>
+ #       <div class="hero-sub">
+ #           Data dibaca langsung dari Google Sheets.
+ #       </div>
+ #   </div>
+ #   """, unsafe_allow_html=True)
+#
+ #   st.success(
+ #       "🟢 Data terhubung ke Google Sheets secara langsung."
+ #   )
 
-    st.markdown("""
-    <div class="hero">
-        <div class="hero-kicker">DATA SOURCE</div>
-        <div class="hero-title">📁 Data Dashboard</div>
-        <div class="hero-sub">
-            Data dibaca langsung dari Google Sheets.
-        </div>
-    </div>
-    """, unsafe_allow_html=True)
+  #  st.markdown("### Status sumber data")
 
-    st.success(
-        "🟢 Data terhubung ke Google Sheets secara langsung."
-    )
+  #  c1, c2, c3 = st.columns(3)
 
-    st.markdown("### Status sumber data")
+#    with c1:
+ #       st.metric("Sheet1", f"{len(s1):,} baris")
+#
+#    with c2:
+#        st.metric("Sheet3", f"{len(s3):,} baris")
 
-    c1, c2, c3 = st.columns(3)
+#    with c3:
+#        st.metric("Sheet4", f"{len(s4):,} baris")
 
-    with c1:
-        st.metric("Sheet1", f"{len(s1):,} baris")
+#    st.markdown("### Preview Sheet1")
 
-    with c2:
-        st.metric("Sheet3", f"{len(s3):,} baris")
+ #   if not s1.empty:
+#        st.dataframe(
+#            s1,
+#            use_container_width=True,
+#            hide_index=True
+#        )
+#    else:
+#        st.error("Sheet1 tidak dapat dibaca.")
 
-    with c3:
-        st.metric("Sheet4", f"{len(s4):,} baris")
+#    st.markdown("### Preview Sheet3")
 
-    st.markdown("### Preview Sheet1")
+#    if not s3.empty:
+#        st.dataframe(
+#            s3,
+#            use_container_width=True,
+#            hide_index=True
+#        )
+#    else:
+#        st.error("Sheet3 tidak dapat dibaca.")
 
-    if not s1.empty:
-        st.dataframe(
-            s1,
-            use_container_width=True,
-            hide_index=True
-        )
-    else:
-        st.error("Sheet1 tidak dapat dibaca.")
+#    st.markdown("### Preview Sheet4")
 
-    st.markdown("### Preview Sheet3")
-
-    if not s3.empty:
-        st.dataframe(
-            s3,
-            use_container_width=True,
-            hide_index=True
-        )
-    else:
-        st.error("Sheet3 tidak dapat dibaca.")
-
-    st.markdown("### Preview Sheet4")
-
-    if not s4.empty:
-        st.dataframe(
-            s4,
-            use_container_width=True,
-            hide_index=True
-        )
-    else:
-        st.error("Sheet4 tidak dapat dibaca.")
+#    if not s4.empty:
+#        st.dataframe(
+#            s4,
+ #           use_container_width=True,
+#            hide_index=True
+#        )
+#    else:
+#        st.error("Sheet4 tidak dapat dibaca.")
 
 # ============================================================
 # FOOTER / STATUS
