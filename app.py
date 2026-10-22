@@ -764,7 +764,7 @@ elif menu == "📊 Analisis":
     )
 
     kpis = [
-        ("💰", "Total Pendapatan", money(total), "Rp triliun"),
+        ("💰", "Total Pendapatan", money(total), "Rp ribu triliun"),
         ("📈", "IKE BEI", money(ike), "indeks"),
         ("🏢", "Jumlah Perusahaan", integer(perusahaan), "perusahaan"),
         ("↗️", "Pertumbuhan YoY", pct(yoy), "year-on-year"),
