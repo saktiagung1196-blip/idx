@@ -555,7 +555,7 @@ with st.sidebar:
 
     menu = st.radio(
         "Menu",
-        ["🏠 Home", "📊 Analisis", "ℹ️ Metadata", "📁 Data"],
+        ["🏠 Home", "📊 Analisis", "ℹ️ Metadata"],
         label_visibility="collapsed"
     )
 
