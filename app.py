@@ -708,7 +708,7 @@ if menu == "🏠 Home":
             '<div class="section-title">📈 Pertumbuhan Pendapatan</div>',
             unsafe_allow_html=True
         )
-        growth_df = chart_df[chart_df["periode"].astype(str) >= "2025Q4"].copy()
+        growth_df = chart_df[chart_df["periode"].astype(str) >= "2025Q1"].copy()
         growth_cols = [("qtoq","Pertumbuhan Pendapatan (QtQ)"), ("yoy","Pertumbuhan Pendapatan (YoY)"), ("ctoc","Pertumbuhan Pendapatan (CtoC)")]
         gc = st.columns(3)
 
