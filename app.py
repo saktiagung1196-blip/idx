@@ -18,7 +18,11 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
+# Spreadsheet utama dashboard (jangan diubah agar grafik/KPI yang lama tetap tampil)
 SPREADSHEET_ID = "1z2-UYSAGLHWb88LADmDKH4Y4pPFkM3aCJH5wPuw0Mp8"
+
+# Spreadsheet terpisah yang berisi Sheet12 (Pertumbuhan per Kategori)
+CATEGORY_SPREADSHEET_ID = "17SIvnxNHB6SNaKlHPI1ii-WQHjA4O4uX5F5nOrIkFXY"
 
 # ============================================================
 # CSS
@@ -314,10 +318,12 @@ def integer(x):
         return "—"
     return f"{int(round(float(x))):,}".replace(",", ".")
 
-def gviz_url(sheet_name):
+def gviz_url(sheet_name, spreadsheet_id=None):
+    # Default tetap memakai spreadsheet utama untuk seluruh data dashboard lama.
+    source_id = spreadsheet_id or SPREADSHEET_ID
     return (
         f"https://docs.google.com/spreadsheets/d/"
-        f"{SPREADSHEET_ID}/gviz/tq?tqx=out:csv&sheet={sheet_name}"
+        f"{source_id}/gviz/tq?tqx=out:csv&sheet={sheet_name}"
     )
 
 @st.cache_data(ttl=300, show_spinner=False)
@@ -330,12 +336,93 @@ def read_sheet(sheet_name):
     except Exception:
         return pd.DataFrame()
 
+
+# Sheet12 memiliki beberapa blok tabel (YoY, QtQ, CtoC) dengan header bertingkat.
+# Dibaca tanpa header agar susunan sel Google Sheets tetap utuh.
+@st.cache_data(ttl=300, show_spinner=False)
+def read_sheet12_raw():
+    # GID Sheet12 sesuai URL yang ditunjukkan pengguna.
+    # Export berdasarkan GID lebih andal daripada memilih tab berdasarkan nama.
+    url = (
+        f"https://docs.google.com/spreadsheets/d/{CATEGORY_SPREADSHEET_ID}"
+        "/export?format=csv&gid=881220002"
+    )
+    try:
+        r = requests.get(url, timeout=25, allow_redirects=True)
+        r.raise_for_status()
+        # Google terkadang mengembalikan halaman login/izin dalam HTML, bukan CSV.
+        if "<html" in r.text[:500].lower() or "<!doctype html" in r.text[:500].lower():
+            return pd.DataFrame()
+        return pd.read_csv(StringIO(r.text), header=None, dtype=str).fillna("")
+    except Exception:
+        return pd.DataFrame()
+
+
+def parse_sheet12(df):
+    """Ubah blok YoY, QtQ, dan CtoC di Sheet12 menjadi format panjang."""
+    if df.empty:
+        return pd.DataFrame(columns=["periode", "kategori", "yoy", "qtoq", "ctoc"])
+
+    grid = df.fillna("").astype(str)
+    periods = ["2025Q1", "2025Q2", "2025Q3", "2025Q4",
+               "2026Q1", "2026Q2", "2026Q3", "2026Q4"]
+    section_names = {
+        "pertumbuhan yoy": "yoy",
+        "pertumbuhan qtoq": "qtoq",
+        "pertumbuhan q to q": "qtoq",
+        "pertumbuhan ctoc": "ctoc",
+        "pertumbuhan c to c": "ctoc",
+    }
+    blocks = {}
+    for i in range(len(grid)):
+        row_text = " ".join(norm(v) for v in grid.iloc[i].tolist())
+        for label, key in section_names.items():
+            if label in row_text:
+                blocks[key] = i
+
+    values = {}
+    for metric, title_row in blocks.items():
+        # Struktur Sheet12: judul blok, baris tahun, baris triwulan, lalu data.
+        start_row = title_row + 3
+        for ridx in range(start_row, len(grid)):
+            code = str(grid.iat[ridx, 0]).strip() if grid.shape[1] > 0 else ""
+            category_name = str(grid.iat[ridx, 1]).strip() if grid.shape[1] > 1 else ""
+            if not category_name or norm(category_name) in {"total", "pertumbuhan yoy", "pertumbuhan qtoq", "pertumbuhan ctoc"}:
+                break
+            if norm(category_name) == "nan":
+                break
+            if norm(category_name).startswith("pertumbuhan "):
+                break
+            # Abaikan baris kode/judul tanpa nama kategori.
+            key = category_name
+            if key not in values:
+                values[key] = {"kategori": key, "yoy": {}, "qtoq": {}, "ctoc": {}}
+            for j, period in enumerate(periods, start=2):
+                if j >= grid.shape[1]:
+                    continue
+                cell = grid.iat[ridx, j]
+                values[key][metric][period] = num(cell)
+
+    records = []
+    for category_name, info in values.items():
+        for period in periods:
+            records.append({
+                "periode": period,
+                "kategori": category_name,
+                "yoy": info["yoy"].get(period, np.nan),
+                "qtoq": info["qtoq"].get(period, np.nan),
+                "ctoc": info["ctoc"].get(period, np.nan),
+            })
+    return pd.DataFrame(records)
+
 # ============================================================
 # BACA SHEET
 # ============================================================
 s1 = read_sheet("Sheet1")
 s3 = read_sheet("Sheet3")
 s4 = read_sheet("Sheet4")
+sheet12_raw = read_sheet12_raw()
+category_growth = parse_sheet12(sheet12_raw)
 
 # ============================================================
 # PARSING SHEET1
@@ -730,6 +817,71 @@ if menu == "🏠 Home":
                     plot_bgcolor="white", margin=dict(l=20,r=20,t=55,b=35), showlegend=False
                 )
                 st.plotly_chart(fig, use_container_width=True, config={"displayModeBar":False})
+
+        # ========================================================
+        # PERTUMBUHAN PER KATEGORI (SUMBER: SHEET12)
+        # Ditambahkan di bawah grafik Pertumbuhan Pendapatan.
+        # ========================================================
+        st.markdown(
+            '<div class="section-title">📊 Pertumbuhan per Kategori</div>',
+            unsafe_allow_html=True
+        )
+        st.markdown(
+            '<div class="section-sub">Pilih kategori usaha dan jenis pertumbuhan untuk melihat perkembangan per triwulan dari Sheet12.</div>',
+            unsafe_allow_html=True
+        )
+
+        if not category_growth.empty:
+            cat_options = sorted(category_growth["kategori"].dropna().unique().tolist())
+            csel, msel = st.columns([2, 1])
+            with csel:
+                selected_category_growth = st.selectbox(
+                    "Pilih kategori", cat_options, key="growth_category_sheet12"
+                )
+            with msel:
+                selected_growth_metric = st.selectbox(
+                    "Jenis pertumbuhan",
+                    ["YoY", "QtQ", "CtoC"],
+                    key="growth_metric_sheet12"
+                )
+
+            metric_key = {"YoY": "yoy", "QtQ": "qtoq", "CtoC": "ctoc"}[selected_growth_metric]
+            cat_chart = category_growth[
+                category_growth["kategori"].eq(selected_category_growth)
+            ].copy()
+            cat_chart = cat_chart.sort_values("periode")
+            cat_chart = cat_chart.dropna(subset=[metric_key])
+
+            if not cat_chart.empty:
+                latest = cat_chart.iloc[-1]
+                metric_label = {"yoy": "YoY", "qtoq": "QtQ", "ctoc": "CtoC"}[metric_key]
+                st.markdown(
+                    f'<div class="period-badge">{selected_category_growth} · {metric_label} terakhir: {latest[metric_key]:.2f}% ({latest["periode"]})</div>',
+                    unsafe_allow_html=True
+                )
+                fig_cat = go.Figure()
+                fig_cat.add_trace(go.Scatter(
+                    x=cat_chart["periode"], y=cat_chart[metric_key],
+                    mode="lines+markers+text",
+                    text=[f"{v:.2f}%" for v in cat_chart[metric_key]],
+                    textposition="top center",
+                    line=dict(color="#0B67C2", width=3),
+                    marker=dict(size=9, color="#0B67C2"),
+                    hovertemplate="%{x}<br>Pertumbuhan: %{y:.2f}%<extra></extra>"
+                ))
+                fig_cat.add_hline(y=0, line_dash="dot", line_color="#8998a8", line_width=1)
+                fig_cat.update_layout(
+                    title=f"Pertumbuhan {metric_label} — {selected_category_growth}",
+                    height=360, xaxis_title="Periode", yaxis_title="Pertumbuhan (%)",
+                    paper_bgcolor="white", plot_bgcolor="white",
+                    margin=dict(l=25, r=25, t=55, b=35),
+                    hovermode="x unified"
+                )
+                st.plotly_chart(fig_cat, use_container_width=True, config={"displayModeBar": False})
+            else:
+                st.info(f"Belum ada data {selected_growth_metric} untuk kategori {selected_category_growth}.")
+        else:
+            st.warning("Sheet12 belum terbaca sebagai CSV. Pastikan akses spreadsheet diatur ke Siapa saja yang memiliki link (Pelihat), lalu klik Refresh Data. Data kategori dibaca dari GID 881220002.")
 
 # ============================================================
 # ANALISIS
