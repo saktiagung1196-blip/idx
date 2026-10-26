@@ -501,63 +501,61 @@ indicator = parse_sheet1(s1)
 # Struktur screenshot:
 # A ID, B Triwulan, C Tahun, D Periode, E Parameter, F Data
 # ============================================================
-def parse_sheet3(df):
+
+# Ambil KPI dari blok indikator Sheet8:
+# D = Periode, E = Parameter, F = Data
+def parse_kpi_sheet8(df):
     if df.empty:
         return pd.DataFrame()
 
     cols = {norm(c): c for c in df.columns}
 
-    def find(*names):
-        for n in names:
-            if n in cols:
-                return cols[n]
-        return None
+    p = cols.get("periode")
+    param = cols.get("parameter")
+    data = cols.get("data")
 
-    p = find("periode")
-    param = find("parameter")
-    data = find("data")
-    year = find("tahun")
-    q = find("triwulan")
-
-    if not all([p, param, data]):
+    if p is None or param is None or data is None:
+        st.warning("Kolom Periode, Parameter, atau Data tidak ditemukan di Sheet8.")
         return pd.DataFrame()
 
-    out = pd.DataFrame()
-    out["periode"] = df[p].astype(str).str.strip().str.upper()
-    out["parameter"] = df[param].astype(str).str.strip().str.lower()
-    out["data"] = df[data].map(num)
+    out = pd.DataFrame({
+        "periode": df[p].astype(str).str.strip().str.upper(),
+        "parameter": df[param].astype(str).str.strip().str.lower(),
+        "data": df[data].map(num),
+    })
 
-    def target(x):
-        x = norm(x)
-        if "total pendapatan" in x or "total pendapata" in x:
-            return "total_pendapatan"
-        if "jumlah perusah" in x or x == "perusahaan":
-            return "jumlah_perusahaan"
-        return None
+    out["target"] = out["parameter"].map(
+        lambda x: (
+            "jumlah_perusahaan"
+            if "jumlah perusah" in norm(x)
+            else "total_pendapatan"
+            if "total pendapatan" in norm(x)
+            else None
+        )
+    )
 
-    out["target"] = out["parameter"].map(target)
     out = out[out["target"].notna()].copy()
 
     if out.empty:
         return pd.DataFrame()
 
-    wide = (
-        out.pivot_table(
-            index="periode",
-            columns="target",
-            values="data",
-            aggfunc="last"
-        )
-        .reset_index()
-    )
+    out = out[out["periode"].str.match(r"^\d{4}Q[1-4]$", na=False)]
 
-    for c in ["total_pendapatan","jumlah_perusahaan"]:
-        if c not in wide.columns:
-            wide[c] = np.nan
+    wide = out.pivot_table(
+        index="periode",
+        columns="target",
+        values="data",
+        aggfunc="last"
+    ).reset_index()
+
+    for col in ["total_pendapatan", "jumlah_perusahaan"]:
+        if col not in wide.columns:
+            wide[col] = np.nan
 
     return wide
 
-kpi = parse_sheet3(s3)
+
+kpi = parse_kpi_sheet8(s4)
 
 # ============================================================
 # PARSING SHEET4
