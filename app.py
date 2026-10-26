@@ -584,7 +584,14 @@ def parse_sheet4(df):
     qtoq = find("qtoq", "qtoq")
     ctoc = find("ctoc")
     company = find("jumlah perusahaan", "jumlah perusaha")
+    st.write("Kolom sumber:", df.columns.tolist())
+st.write("Jumlah baris sumber:", len(df))
 
+if p:
+    st.write(
+        "Periode yang tersedia:",
+        sorted(df[p].astype(str).unique().tolist())
+    )
     if not p or not cat:
         return pd.DataFrame()
 
