@@ -327,8 +327,8 @@ def gviz_url(sheet_name, spreadsheet_id=None):
     )
 
 @st.cache_data(ttl=300, show_spinner=False)
-def read_sheet(sheet_name):
-    url = gviz_url(sheet_name)
+def read_sheet(sheet_name, spreadsheet_id=None):
+    url = gviz_url(sheet_name, spreadsheet_id)
     try:
         r = requests.get(url, timeout=20)
         r.raise_for_status()
@@ -420,7 +420,7 @@ def parse_sheet12(df):
 # ============================================================
 s1 = read_sheet("Sheet1")
 s3 = read_sheet("Sheet3")
-s4 = read_sheet("Sheet4")
+s4 = read_sheet("Sheet8", CATEGORY_SPREADSHEET_ID)
 sheet12_raw = read_sheet12_raw()
 category_growth = parse_sheet12(sheet12_raw)
 
@@ -567,8 +567,12 @@ kpi = parse_sheet3(s3)
 # ============================================================
 
 def parse_sheet4(df):
+    """Parse kategori dari Sheet8; periode berada di kolom D dan kategori di kolom I."""
     if df.empty:
-        return pd.DataFrame()
+        return pd.DataFrame(columns=[
+            "periode", "kategori", "kontribusi", "yoy", "qtoq", "ctoc",
+            "jumlah_perusahaan"
+        ])
 
     cols = {norm(c): c for c in df.columns}
 
@@ -586,42 +590,39 @@ def parse_sheet4(df):
     ctoc = find("ctoc")
     company = find("jumlah perusahaan", "jumlah perusaha")
 
-    # Pemeriksaan sementara untuk debugging
-    st.write("Kolom sumber:", df.columns.tolist())
-    st.write("Jumlah baris sumber:", len(df))
-
-    if p:
-        st.write(
-            "Periode yang tersedia:",
-            sorted(df[p].astype(str).unique().tolist())
-        )
-
-    if not p or not cat:
+    if p is None or cat is None:
         st.warning(
-            "Kolom periode atau kategori tidak ditemukan."
+            "Sheet8: kolom Periode atau Kategori tidak ditemukan. "
+            f"Kolom yang terbaca: {df.columns.tolist()}"
         )
-        return pd.DataFrame()
+        return pd.DataFrame(columns=[
+            "periode", "kategori", "kontribusi", "yoy", "qtoq", "ctoc",
+            "jumlah_perusahaan"
+        ])
 
     out = pd.DataFrame()
-    out["periode"] = (
-        df[p].astype(str).str.strip().str.upper()
-    )
+    out["periode"] = df[p].astype(str).str.strip().str.upper()
     out["kategori"] = df[cat].astype(str).str.strip()
     out["kontribusi"] = df[kon].map(num) if kon else np.nan
     out["yoy"] = df[yoy].map(num) if yoy else np.nan
     out["qtoq"] = df[qtoq].map(num) if qtoq else np.nan
     out["ctoc"] = df[ctoc].map(num) if ctoc else np.nan
-    out["jumlah_perusahaan"] = (
-        df[company].map(num) if company else np.nan
-    )
+    out["jumlah_perusahaan"] = df[company].map(num) if company else np.nan
 
-    out = out[out["kategori"].notna()].copy()
+    # Sheet8 juga berisi baris indikator di bagian atas. Ambil hanya baris
+    # kategori yang benar-benar memiliki nama dan periode yang valid.
+    valid_category = (
+        out["kategori"].notna()
+        & out["kategori"].str.strip().ne("")
+        & out["kategori"].str.lower().ne("nan")
+        & out["kategori"].str.lower().ne("none")
+    )
+    valid_period = out["periode"].str.match(r"^\d{4}Q[1-4]$", na=False)
+    out = out[valid_category & valid_period].copy()
     return out
 
-st.write("Nama sheet sumber:", s4.shape)
-st.write("Periode mentah:", s4["Periode"].astype(str).unique().tolist())
-category = parse_sheet4(s4)
 
+category = parse_sheet4(s4)
 
 # ============================================================
 # GABUNGAN DATA
