@@ -618,7 +618,8 @@ def parse_sheet4(df):
     out = out[out["kategori"].notna()].copy()
     return out
 
-
+st.write("Nama sheet sumber:", s4.shape)
+st.write("Periode mentah:", s4["Periode"].astype(str).unique().tolist())
 category = parse_sheet4(s4)
 
 
