@@ -303,20 +303,32 @@ def num(x):
     except:
         return np.nan
 
-def pct(x):
-    if pd.isna(x):
-        return "—"
-    return f"{float(x):.2f}%"
 
-def money(x):
-    if pd.isna(x):
-        return "—"
-    return f"{float(x):,.2f}"
+def format_id(value, decimals=2):
+    try:
+        if pd.isna(value):
+            return "-"
+        return (
+            f"{float(value):,.{decimals}f}"
+            .replace(",", "X")
+            .replace(".", ",")
+            .replace("X", ".")
+        )
+    except (ValueError, TypeError):
+        return "-"
 
-def integer(x):
-    if pd.isna(x):
-        return "—"
-    return f"{int(round(float(x))):,}".replace(",", ".")
+
+def money(value):
+    return format_id(value, 2)
+
+
+def integer(value):
+    return format_id(value, 0)
+
+
+def pct(value):
+    return format_id(value, 2) + "%"
+
 
 def gviz_url(sheet_name, spreadsheet_id=None):
     # Default tetap memakai spreadsheet utama untuk seluruh data dashboard lama.
