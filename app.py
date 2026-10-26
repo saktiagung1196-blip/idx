@@ -960,14 +960,14 @@ elif menu == "📊 Analisis":
             )
 
 
-    st.markdown(
-        '<div class="section-title">🏆 Top 5 Kategori</div>',
-        unsafe_allow_html=True
-    )
-    st.markdown(
-        '<div class="section-sub">Kategori mengikuti filter tahun dan triwulan di sidebar.</div>',
-        unsafe_allow_html=True
-    )
+   # st.markdown(
+  #      '<div class="section-title">🏆 Top 5 Kategori</div>',
+  #      unsafe_allow_html=True
+ #   )
+ #   st.markdown(
+ #       '<div class="section-sub">Kategori mengikuti filter tahun dan triwulan di sidebar.</div>',
+ #       unsafe_allow_html=True
+  #  )
 
     st.markdown(
         '<div class="section-title">🧩 Ringkasan Kategori</div>',
