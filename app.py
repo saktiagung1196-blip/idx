@@ -19,7 +19,7 @@ st.set_page_config(
 )
 
 # Spreadsheet utama dashboard (jangan diubah agar grafik/KPI yang lama tetap tampil)
-SPREADSHEET_ID = "1z2-UYSAGLHWb88LADmDKH4Y4pPFkM3aCJH5wPuw0Mp8"
+SPREADSHEET_ID = "17SIvnxNHB6SNaKlHPI1ii-WQHjA4O4uX5F5nOrIkFXY"
 
 # Spreadsheet terpisah yang berisi Sheet12 (Pertumbuhan per Kategori)
 CATEGORY_SPREADSHEET_ID = "17SIvnxNHB6SNaKlHPI1ii-WQHjA4O4uX5F5nOrIkFXY"
