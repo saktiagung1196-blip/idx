@@ -565,6 +565,7 @@ kpi = parse_sheet3(s3)
 # Periode, Kode, Kategori, Kontribusi, YoY, QtoQ, CtoC,
 # Jumlah perusahaan
 # ============================================================
+
 def parse_sheet4(df):
     if df.empty:
         return pd.DataFrame()
@@ -581,33 +582,45 @@ def parse_sheet4(df):
     cat = find("kategori")
     kon = find("kontribusi")
     yoy = find("yoy")
-    qtoq = find("qtoq", "qtoq")
+    qtoq = find("qtoq", "qt oq")
     ctoc = find("ctoc")
     company = find("jumlah perusahaan", "jumlah perusaha")
-    st.write("Kolom sumber:", df.columns.tolist())
-st.write("Jumlah baris sumber:", len(df))
 
-if p:
-    st.write(
-        "Periode yang tersedia:",
-        sorted(df[p].astype(str).unique().tolist())
-    )
+    # Pemeriksaan sementara untuk debugging
+    st.write("Kolom sumber:", df.columns.tolist())
+    st.write("Jumlah baris sumber:", len(df))
+
+    if p:
+        st.write(
+            "Periode yang tersedia:",
+            sorted(df[p].astype(str).unique().tolist())
+        )
+
     if not p or not cat:
+        st.warning(
+            "Kolom periode atau kategori tidak ditemukan."
+        )
         return pd.DataFrame()
 
     out = pd.DataFrame()
-    out["periode"] = df[p].astype(str).str.strip().str.upper()
+    out["periode"] = (
+        df[p].astype(str).str.strip().str.upper()
+    )
     out["kategori"] = df[cat].astype(str).str.strip()
     out["kontribusi"] = df[kon].map(num) if kon else np.nan
     out["yoy"] = df[yoy].map(num) if yoy else np.nan
     out["qtoq"] = df[qtoq].map(num) if qtoq else np.nan
     out["ctoc"] = df[ctoc].map(num) if ctoc else np.nan
-    out["jumlah_perusahaan"] = df[company].map(num) if company else np.nan
+    out["jumlah_perusahaan"] = (
+        df[company].map(num) if company else np.nan
+    )
 
     out = out[out["kategori"].notna()].copy()
     return out
 
+
 category = parse_sheet4(s4)
+
 
 # ============================================================
 # GABUNGAN DATA
